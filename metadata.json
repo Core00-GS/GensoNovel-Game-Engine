@@ -1,0 +1,8 @@
+{
+  "name": "文字冒险游戏引擎",
+  "description": "一个功能完备的日系二次元风格文字冒险游戏与故事跑团引擎。支持运行精美的内置剧本、可视化章节分支编辑器、角色状态与背包道具系统、骰子事件判定，并可以通过强大的 AI (Gemini) 一键生成由玩家自定义的复杂分支剧情故事。",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
