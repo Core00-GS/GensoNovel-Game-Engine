@@ -102,6 +102,7 @@ export default function App() {
   const [showRawImportDialog, setShowRawImportDialog] = useState(false);
   const [rawImportJson, setRawImportJson] = useState('');
   const [importError, setImportError] = useState<string | null>(null);
+  const [gameToDeleteId, setGameToDeleteId] = useState<string | null>(null);
 
   // Added sub-tabs under editor: 'nodes' (node editing) | 'settings' (metadata & world setups & stat definitions)
   const [editorSubTab, setEditorSubTab] = useState<'nodes' | 'settings'>('nodes');
@@ -400,17 +401,38 @@ export default function App() {
 
   // Editor Actions: Delete chosen story from list
   const handleDeleteGame = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+    if (e && e.stopPropagation) {
+      e.stopPropagation();
+    }
     if (presetStories.some(p => p.metadata.id === id)) {
       alert("内置剧本无法删除！");
       return;
     }
-    if (confirm("确定要彻底销毁这个自定义剧本世界吗？")) {
-      const filter = games.filter(g => g.metadata.id !== id);
-      saveCustomGamesToLocal(filter);
+    setGameToDeleteId(id);
+    playButtonPushSound(280);
+  };
+
+  const confirmDeleteGame = () => {
+    if (!gameToDeleteId) return;
+    
+    const filter = games.filter(g => g.metadata.id !== gameToDeleteId);
+    saveCustomGamesToLocal(filter);
+    
+    // If the currently played SelectedGame is deleted, clear its active play
+    if (selectedGame?.metadata.id === gameToDeleteId) {
       setSelectedGame(null);
       setSession(null);
     }
+    
+    // If the currently edited game is deleted, select another one or fallback
+    if (editingGameId === gameToDeleteId) {
+      const nextGame = filter[0] || presetStories[0];
+      setEditingGameId(nextGame ? nextGame.metadata.id : '');
+      setEditingNodeId('start');
+    }
+    
+    setGameToDeleteId(null);
+    playButtonPushSound(350);
   };
 
   // Handlers to edit game nodes list
@@ -1451,6 +1473,17 @@ export default function App() {
                     <Download className="w-3.5 h-3.5 text-purple-400" />
                     <span>导出跑团卡</span>
                   </button>
+
+                  {!presetStories.some(p => p.metadata.id === editingGameId) && (
+                    <button
+                      onClick={(e) => handleDeleteGame(editingGameId, e)}
+                      className="p-1 px-3 bg-rose-950/80 hover:bg-rose-900 rounded-xl text-xs text-rose-200 border border-rose-800/80 flex items-center gap-1.5 cursor-pointer hover:text-white transition-all duration-150"
+                      title="彻底删除此自定义跑团剧本"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-rose-450" />
+                      <span>删除当前剧本</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -2161,6 +2194,61 @@ export default function App() {
             </div>
           </div>
         )}
+
+        {gameToDeleteId && (() => {
+          const gameToDelete = games.find(g => g.metadata.id === gameToDeleteId);
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 animate-fade-in">
+              <div className="w-full max-w-sm bg-slate-900 border-2 border-rose-500 rounded-3xl p-6 shadow-[0_0_30px_rgba(244,63,94,0.3)] relative space-y-4 text-left">
+                <button
+                  onClick={() => setGameToDeleteId(null)}
+                  className="absolute top-4 right-4 p-1 rounded-full text-slate-400 hover:text-white hover:bg-slate-850 transition cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+
+                <div className="flex items-center gap-3 border-b border-slate-800/80 pb-3">
+                  <div className="p-2 bg-rose-950/70 border border-rose-500/30 text-rose-400 rounded-xl">
+                    <AlertTriangle className="w-5 h-5 animate-pulse" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-rose-200">
+                      🚨 异世界剧本终极降维注销
+                    </h3>
+                    <p className="text-[9px] text-slate-400 font-mono tracking-widest uppercase">Eradicate Lore Timeline</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3 py-1">
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    冒险者，您正在发动最高审判以毁灭深渊中的自定义世界：
+                  </p>
+                  <div className="p-3 bg-rose-950/30 rounded-2xl border border-rose-500/20 text-center font-bold text-rose-300 text-xs">
+                    《{gameToDelete?.metadata.title || '自定义流浪剧本'}》
+                  </div>
+                  <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-850 text-[10px] text-slate-400 leading-normal font-sans">
+                    💡 <b>时空坍塌警报：</b>此毁灭动作无法被神迹逆转。确认毁灭后，该剧本的编文世界线及自定义节点档案将被永远抹除。
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-2 text-xs font-semibold">
+                  <button
+                    onClick={confirmDeleteGame}
+                    className="flex-1 py-2 bg-gradient-to-r from-rose-700 to-pink-700 hover:from-rose-600 hover:to-pink-600 text-white font-bold rounded-xl transition cursor-pointer"
+                  >
+                    💥 确认，彻底尘封抹除
+                  </button>
+                  <button
+                    onClick={() => setGameToDeleteId(null)}
+                    className="px-4 py-2 bg-slate-850 text-slate-350 hover:bg-slate-800 hover:text-white rounded-xl cursor-pointer border border-slate-800"
+                  >
+                    放弃，完好保留
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {showReadmeModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4">
